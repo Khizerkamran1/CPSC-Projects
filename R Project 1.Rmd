@@ -1,0 +1,471 @@
+---
+title: "DATA 603 Khizer Kamran (30038809) - Assignment 1"
+author: "Khizer Kamran"
+date: "2022-10-30"
+output:
+  word_document: default
+  html_document: default
+  pdf_document: default
+---
+
+Libraries
+
+``` {r}
+library(ggplot2)
+library(magrittr)
+library(dplyr)
+```
+
+Problem 1
+
+*Load the 'water.csv' File*
+
+``` {r}
+data_p1 = read.csv("C:/Users/khizz/OneDrive/Desktop/Masters of Data Science and Analytics (MDSA)/Fall 2022/DATA 603/water.csv") #Read in the water.csv data file
+```
+
+Part A:
+
+1) The Regression Model (R Code)
+
+``` {r}
+reg1 <- lm(USAGE ~ HOUR + TEMP + PROD + DAYS, data = data_p1) #Create the regression model
+coefficients(reg1) #Find the coefficients
+summary(reg1) #Summary statistics
+```
+
+2) The Regression Equation
+
+*The name of the variable is used as a placeholder for x1, x2,..,xn*
+
+USAGE = -0.070990(HOUR) + 0.168673(TEMP) + 0.040207(PROD) + -0.021623(DAYS) 
+            + 5.891627(Intercept)
+
+Part B
+
+1) Hypothesis Test
+
+Ho: B1 = B2 = B3 =..= Bx = 0
+HA: at least one of Bx != 0
+
+*Significance Level = 0.05*
+
+```{r}
+reg1 <- lm(USAGE ~ HOUR + TEMP + PROD + DAYS, data = data_p1) #Create the regression model
+reg2 <- lm(USAGE ~ 1, data = data_p1) #Create the regression model
+anova(reg2, reg1) #Create the anova test table
+summary(reg1) #Summary statistics
+```
+2) Conclusion
+
+*Calculated p-value = 2.2 x 10 ^ -16*
+
+Since the calculated p-value is less than the significance level we should fail to accept the Null Hypothesis (or reject Ho). It provides compelling evidence against the null hypothesis Ho. In other words, the large F-test suggests that at least one of the independent variables must be related to the USAGE amount. Based on the p-value, we also have extremely strong evidence that at least one of the independent variables is associated with increased water USAGE (at least one of the independent predictors is != 0).
+
+Part C
+
+1) Individual Coefficients t-test
+```{r}
+reg1 <- lm(USAGE ~ HOUR + TEMP + PROD + DAYS, data = data_p1) #Create the regression model
+summary(reg1) #Individual Coefficients t-test
+```
+
+2) Conclusion
+
+The coefficient of the p-value of the independent variable DAYS (t-value) is greater than 0.05, thus to increase the predictive power of our model we would remove this variable.
+
+Our New Model (As Predicted From the Individual Coefficients Test):
+
+```{r}
+reg1 <- lm(USAGE ~ HOUR + TEMP + PROD, data = data_p1) #Create the regression model without days
+summary(reg1) #Individual Coefficients t-test
+```
+
+Part D
+
+1) Partial F-test
+
+```{r}
+reduced <- lm(USAGE ~ HOUR + TEMP + PROD, data = data_p1) #Create the regression model
+full <- lm(USAGE ~ HOUR + TEMP + PROD + DAYS, data = data_p1) #Create the regression model
+anova(reduced,full) # test if Ho = 0
+```
+
+2) Hypothesis / Conclusion
+
+H0: βp−q+1=βp−q+2=...=βp=0
+Ha: at least one βi≠0
+
+The partial F-test indicates that we should clearly not reject the Null Hypothesis which means that we definitely drop the variable DAYS off the model.
+
+Part E
+
+1) Confidence Interval
+
+```{r}
+confint(reduced, level = 0.95) # a 99% confidence interval for coefficients
+```
+
+2) Conclusion
+
+From the water.csv example, the output displays the multiple regression 95% confidence Interval for coefficient estimates when HOUR, TEMP, and PROD are used to predict water USAGE.
+
+Thus, we can interpret that when the TEMP increases by 1 unit then the water consumption will increase in a range from between 0.1531 units to 0.1853 units (with 95% confidence).
+
+Part F
+
+1) Radj Values and Conclusions
+
+```{r}
+reduced <- lm(USAGE ~ HOUR + TEMP + PROD, data = data_p1) #Create the regression model
+full <- lm(USAGE ~ HOUR + TEMP + PROD + DAYS, data = data_p1) #Create the regression model
+
+summary(full)$r.squared #R^2 square for the full model
+summary(reduced)$r.squared #R^2 square for the reduced model
+summary(full)$adj.r.squared #R^2 square adjusted for the full model
+summary(reduced)$adj.r.squared #R^2 square adjusted for the reduced model
+```
+
+From the water data example, the model containing all predictors has a R2adj = 0.8867. In contrast, the model that contains all variables (except DAYS) as predictor has a R2adj = 0.8869. This implies that a model that uses all variables (except DAYS) to predict water USAGE is substantially better than one that uses the full model.
+
+2) RMSE Values and Interpretation 
+
+```{r}
+reduced <- lm(USAGE ~ HOUR + TEMP + PROD, data = data_p1) #Create the regression model
+full <- lm(USAGE ~ HOUR + TEMP + PROD + DAYS, data = data_p1) #Create the regression model
+
+sigma(full) # RMSE for the full model
+sigma(reduced) # RMSE for the reduced model
+```
+
+Looking at the reduced model that contains all variables (except DAYS) as predictors has an RMSE of 1.7663, and the model that contains all variables (full model) has an RMSE = 1.7684. This corroborates with our previous conclusion that a model that uses all variables except DAYS to predict water USAGE is much more accurate than one that use the full model. Therefore, there is no point in using DAYS as a predictor in the model.
+
+Part G
+
+1) 2 Interaction Models
+
+```{r}
+reduced <- lm(USAGE ~ (HOUR + TEMP + PROD) ^ 2, data = data_p1) #Create the regression model
+full <- lm(USAGE ~ HOUR + TEMP + PROD, data = data_p1) #Create the regression model
+
+summary(reduced) #Summary Statistics
+summary(full) #Summary Statistics
+```
+
+2) Conclusion
+
+*Hypothesis Test*
+
+Ho: Bi = 0
+HA: Bi != 0
+
+As you can see from the output, with the p-value of 2.2 x 10 ^ -16, indicating that we should clearly reject the null hypothesis which means that we should definitely add the interaction term to the model at α = 0.05. Moreover, R2adj = 0.9647, means that 96.47% of the variation of the response variable is explained by the interaction model compared to only 0.8883 (or 88.88%) for the additive model that predicts water USAGE using all variables (except DAYS) without an interaction term.
+
+Problem 2
+
+*Load the 'GFCLOCKS.csv' File*
+
+``` {r}
+data_p2 = read.csv("C:/Users/khizz/OneDrive/Desktop/Masters of Data Science and Analytics (MDSA)/Fall 2022/DATA 603/GFCLOCKS.csv") #Read in the water.csv data file
+```
+
+Part A
+
+1) Full Model
+
+``` {r}
+reg1 <- lm(PRICE ~ AGE + NUMBIDS, data = data_p2) #Create the full regression model
+
+coefficients(reg1) #Find the coefficients of the regression model
+```
+
+Part B
+
+1) Value of the SSE
+
+```{r}
+sse <- sum((fitted(reg1) - data_p2$PRICE) ^ 2)
+sse
+```
+Part C
+
+1) Value of the SD 
+
+```{r}
+sigma(reg1) #Find the SD of the regression model
+```
+
+2) Interpretation
+
+RMSE is the standard deviation (SD) of the residual errors. Residuals are a measure of how far from the regression line data points are; RMSE is a measure of how spread out these residual errors are. In other words, it tells you how concentrated the data is around the line of best fit. In this particular instance the PRICE data points (or residual values) are spread away from the regression line with a SD of 133.4847.
+
+Part D
+
+1) R-square and R-square (adjusted)
+
+```{r}
+summary(reg1)$r.squared #Find the R ^ 2 of the full model
+summary(reg1)$adj.r.squared #Find the R ^ 2 adjusted of the full model
+```
+
+From the GFCLOCKS example, the model containing all predictors has a R2adj = 0.8849. This implies that within a model that uses all the variables to predict PRICE, such a model has 88.49% of the variation of the response variable explained by the model.
+
+Part E
+
+1) Create the ANOVA Table
+
+```{r}
+reg1 <- lm(PRICE ~ AGE + NUMBIDS, data = data_p2) #Create the full regression model
+reg2 <- lm(PRICE ~ 1, data = data_p2) #Create the full regression model
+summary(reg1) #Summary Statistics
+anova(reg2, reg1) #Create the anova table
+```
+
+2) Hypothesis Test
+
+Ho:β1=β2=...=βp=0
+Ha:at least one βi is not zero (i=1,2,...,p)
+
+3) F-statistic
+
+F-Statistic = 120.19
+P-value = 9.216 x 10 ^ -15
+
+4) The Decision
+
+From the GFCLOCKS example, the output shows that F-value = 120.19 with df = 31,29 (p-value =  9.216 x 10 ^ -15 < α = 0.05),indicating that we should clearly reject the null hypothesis. It provides compelling evidence against the null hypothesis Ho. In other words, the large F-test suggests that at least one of the independent variables must be related to PRICE. Based on the p-value, we also have extremely strong evidence that at least one of the independent variables is associated with increased PRICE.
+
+Part F
+
+1) Hypothesis Test
+
+Ho: βp−q+1=βp−q+2=...=βp=0
+HA: at least one βi≠0
+
+```{r}
+full <- lm(PRICE ~ AGE + NUMBIDS, data = data_p2) #Create the full regression model
+reduced <- lm(PRICE ~ NUMBIDS, data = data_p2) #Create the full regression model
+anova(reduced,full) # test if Ho: AGE = 0 
+```
+
+2) Interpretation
+
+From the Advertising example, after dropping the variable AGE off the full model, the reduced output shows that with df 30,29 (p-value = 1.693 x 10 ^ -14 < α = 0.05 ), indicating that we should clearly reject the Null Hypothesis which means that we do not drop the variable AGE off the model (at least 1 Bi != 0).
+
+Part G
+
+1) Find the value of B1
+
+```{r}
+confint(reg1, level = 0.95) #Find the Confidence Interval for B1
+```
+
+2) Interpretation
+
+From the GFCLOCKS example, the output displays the multiple regression 95% confidence Interval for coefficient estimates when all variables are used to predict PRICE. Thus, we can interpret that when AGE increases by 1 unit then the PRICE will increase in a range from between 68.10 units to 103.80 units (with 95% confidence).
+
+Part H
+
+1) Interaction Terms
+
+```{r}
+full <- lm(PRICE ~ (AGE + NUMBIDS) ^ 2, data = data_p2) #Create the full regression model
+reduced <- lm(PRICE ~ AGE + NUMBIDS, data = data_p2) #Create the full regression model
+
+
+summary(reduced) #Summary Statistics
+summary(full) #Summary Statistics
+```
+
+2) Interpretation
+
+*Hypothesis Test*
+
+Ho: Bi = 0
+HA: Bi != 0
+
+As you can see from the output, with the p-value of 2.2 x 10 ^ -16, indicating that we should clearly reject the null hypothesis which means that we should definitely add the interaction term to the model at α = 0.05. Moreover, R2adj = 0.9489, means that 94.89% of the variation of the response variable is explained by the interaction model compared to only 0.8849 (88.49%) for the additive model that predicts water USAGE using all variables without an interaction term.
+
+Problem 3
+
+*Load the TURBINE.csv File*
+
+```{r}
+data_p3 = read.csv("C:/Users/khizz/OneDrive/Desktop/Masters of Data Science and Analytics (MDSA)/Fall 2022/DATA 603/TURBINE.CSV") #Read in the TURBINE data file
+```
+
+Part A
+
+1) Full Model (R-Code)
+
+```{r}
+reg1 <- lm(HEATRATE ~ RPM + CPRATIO + INLET.TEMP + EXH.TEMP + AIRFLOW, data = data_p3) #Create the regression model
+reg1
+```
+
+2) First Order Model Equation
+
+f(HEATRATE) = 8.879e-02(RPM) + 3.519e-01(CPRATIO) + -9.201e+00(INLET.TEMP) + 
+  1.439e+01(EXH.TEMP) + -8.480e-01(AIRFLOW)
+
+Part B
+
+1) Hypothesis Test
+
+Ho: B1 = B2 = B3 =..= Bx = 0
+HA: at least one Bi is != 0
+
+```{r}
+reg1 <- lm(HEATRATE ~ RPM + CPRATIO + INLET.TEMP + EXH.TEMP + AIRFLOW, data = data_p3) #Create the regression model
+reg2 <- lm(HEATRATE ~ 1, data = data_p3) #Create the second regression model
+anova(reg2, reg1) #Create the anova test table
+summary(reg1) #Summary statistics
+```
+
+2) Conclusion
+
+*Calculated p-value = 2.2 x 10 ^ -16*
+
+*Significance Level = 0.01*
+
+Since the calculated p-value is less than the significance level we should fail to accept the Null Hypothesis (or reject Ho).It provides compelling evidence against the null hypothesis Ho. In other words, the large F-test suggests that at least one of the independent variables must be related to the HEARTRATE amount. Based on the p-value, we also have extremely strong evidence that at least one of the independent variables is associated with increased water HEARTRATE.
+
+Part C
+
+1) Hypothesis Test
+
+Ho: B1 = 0 in the f(HEATRATE)
+HA: B1 != 0 in the f(HEATRATE)
+
+2) Reduced Model
+
+```{r}
+full <- lm(HEATRATE ~ RPM + CPRATIO + INLET.TEMP + EXH.TEMP + AIRFLOW, data = data_p3) #Create the regression model
+reduced <- lm(HEATRATE ~ RPM + CPRATIO + INLET.TEMP + EXH.TEMP, data = data_p3) #Create the second regression model
+
+reduced2 <- lm(HEATRATE ~ RPM + CPRATIO + INLET.TEMP + AIRFLOW, data = data_p3) #Create the second regression model
+
+
+summary(full) #Summary statistics
+summary(reduced) #Summary statistics
+summary(reduced2) #Summary statistics
+```
+
+3) F-test
+
+```{r}
+full <- lm(HEATRATE ~ 1, data = data_p3) #Create the regression model
+reduced <- lm(HEATRATE ~ RPM + CPRATIO + INLET.TEMP + EXH.TEMP, data = data_p3) #Create the second regression model
+
+reduced2 <- lm(HEATRATE ~ RPM + CPRATIO + INLET.TEMP + AIRFLOW, data = data_p3) #Create the second regression model
+
+anova(reduced, full) #Create the anova test table
+anova(reduced2, full) #Create the anova test table
+```
+
+4) Conclusion
+
+From the TURBINE example, after dropping the AIRFLOW variable off the full model, the reduced output
+shows that with df = 62,61 (p-value = 2.2 x 10 ^ -16 α = 0.05 ), indicating that we should clearly reject the null
+hypothesis which mean that we definitely do not drop the variable AIRFLOW nor EXH.TEMP off the full model.
+
+Part D
+
+*Hypothesis Test*
+
+Ho: Bi = 0
+HA: Bi != 0
+
+1) Interaction Models
+
+```{r}
+full <- lm(HEATRATE ~ RPM + CPRATIO + INLET.TEMP + EXH.TEMP + AIRFLOW, data = data_p3) #Create the regression model
+reduced <- lm(HEATRATE ~ (RPM + CPRATIO + INLET.TEMP + EXH.TEMP + AIRFLOW) ^ 2, data = data_p3) #Create the second regression model
+
+summary(full) #Summary statistics
+summary(reduced) #summary statistics
+```
+
+2) F-test
+
+```{r}
+full <- lm(HEATRATE ~ RPM + CPRATIO + INLET.TEMP + EXH.TEMP + AIRFLOW, data = data_p3) #Create the regression model
+reduced <- lm(HEATRATE ~ (RPM + CPRATIO + INLET.TEMP + EXH.TEMP + AIRFLOW) ^ 2, data = data_p3) #Create the second regression model
+
+anova(reduced, full) #Create the anova table
+summary(reduced) #Summary statistics
+```
+
+3) Conclusion
+
+As you can see from the output, tcal= 4.8339 with the p-value = 0.002 < 0.05, indicating that we should clearly
+reject the null hypothesis which means that we should add the interaction term to the model at
+α = 0.05. Moreover, R2adj = 0.9401, means that 94.01% of the variation of the response variable is explained
+by the interaction model compared to only 0.9172 for the additive model that predicts HEATRATE using all variables without an interaction term.
+
+Part E
+
+1) Model Coefficients
+
+```{r}
+full <- lm(HEATRATE ~ RPM + CPRATIO + INLET.TEMP + EXH.TEMP + AIRFLOW, data = data_p3) #Create the regression model
+
+coefficients(full) #Get the Bi values
+```
+
+2) Interpretations
+
+B1 (RPM) = 8.878591 x 10 ^ -02 means that for a given amount of CPRATIO / INLET.TEMP / EXH.TEMP / AIRFLOW, the HEATRATE will increase by approximately 0.0887591 kilo-joules per kilowatt per hour for every unit change in the RPM.
+
+B2 (CPRATIO) = 3.519043 x 10 ^ -1 means that for a given amount of RPM / INLET.TEMP / EXH.TEMP / AIRFLOW, the HEATRATE will increase by approximately 3.519043 kilo-joules per kilowatt per hour for every unit change in the CPRATIO.
+
+B3 (INLET.TEMP) = -9.200873 x 10 ^ 0 means that for a given amount of RPM / CPRATIO / EXH.TEMP / AIRFLOW, the HEATRATE will decrease by approximately -9.200873 kilo-joules per kilowatt per hour for every unit change in the 
+INLET.TEMP.
+
+B4 (EXH.TEMP) = 1.439385 x 10 ^ 1 means that for a given amount of RPM / CPRATIO / INLET.TEMP / AIRFLOW, the HEATRATE will increase by approximately 14.39385 kilo-joules per kilowatt per hour for every unit change in the 
+EXH.TEMP.
+
+B5 (AIRFLOW) = -8.479583 x 10 ^ -1 means that for a given amount of RPM / CPRATIO / INLET.TEMP / EXH.TEMP, the HEATRATE will decrease by approximately -0.8479583 kilo-joules per kilowatt per hour for every unit change in the 
+AIRFLOW.
+
+Part F
+
+```{r}
+reduced <- lm(HEATRATE ~ (RPM + CPRATIO + INLET.TEMP + EXH.TEMP + AIRFLOW) ^ 2, data = data_p3) #Create the second regression model
+sigma(reduced) #Find the RMSE or SD value
+```
+
+Part G
+
+1) Find the R Squared Adjusted Value
+
+```{r}
+full <- lm(HEATRATE ~ RPM + CPRATIO + INLET.TEMP + EXH.TEMP + AIRFLOW, data = data_p3) #Create the regression model
+reduced <- lm(HEATRATE ~ (RPM + CPRATIO + INLET.TEMP + EXH.TEMP + AIRFLOW) ^ 2, data = data_p3) #Create the second regression model
+
+summary(full)$adj.r.squared #R.sqr Adj
+summary(reduced)$adj.r.squared #R.sqr Adj
+```
+
+2) Interpretation
+
+R2adj = 0.9401, means that 94.01% of the variation of the response variable is explained
+by the interaction model compared to only 0.9172 for the additive model that predicts HEATRATE using all variables without an interaction term.
+
+Part H
+
+1) Predict the value of HEATRATE (Using the Given Values)
+
+```{r}
+reduced <- lm(HEATRATE ~ (RPM + CPRATIO + INLET.TEMP + EXH.TEMP + AIRFLOW) ^ 2, data = data_p3) #Create the second regression model
+
+new_reduced <- data.frame(RPM = 273145, CPRATIO = 10, INLET.TEMP = 1240, EXH.TEMP = 920, AIRFLOW = 25) #Given values to help calculate HEATRATE
+
+predict(reduced, new_reduced, interval = "predict") #Predict the value of the HEATRATE
+```
+
+2) Interpretation
+
+The 95% confidence interval of the HEATRATE with the given parameters is between -22353.24 and 180947.4 when the RPM is 273145, CPRATIO is 10, INLET.TEMP is 1240, EXH.TEMP is 920, and AIRFLOW is 25, respectively.
+
+The fitted value of the HEATRATE with these input parameters is 79297.1 kilo-joules per kilowatt per hour.
