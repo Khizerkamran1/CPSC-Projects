@@ -1,0 +1,852 @@
+---
+title: "DATA 603 Khizer Kamran 30038809 Assignment 3"
+author: "Khizer Kamran"
+date: "`r Sys.Date()`"
+output:
+  word_document: default
+  pdf_document: default
+---
+
+Load All Datasets Used:
+
+```{r}
+data_p1 = read.csv("C:/Users/khizz/OneDrive/Desktop/Masters of Data Science and Analytics (MDSA)/Fall 2022/DATA 603/Assignments/Assignment #3/water.csv") #Load water.csv
+
+data_p2 = read.csv("C:/Users/khizz/OneDrive/Desktop/Masters of Data Science and Analytics (MDSA)/Fall 2022/DATA 603/Assignments/Assignment #3/KBI.csv") #Load KBI.csv
+
+data_p3 = read.csv("C:/Users/khizz/OneDrive/Desktop/Masters of Data Science and Analytics (MDSA)/Fall 2022/DATA 603/Assignments/Assignment #3/butterfat.csv") #Load butterfat.csv
+
+data_p4 = read.csv("C:/Users/khizz/OneDrive/Desktop/Masters of Data Science and Analytics (MDSA)/Fall 2022/DATA 603/Assignments/Assignment #3/vibration.csv") #Load vibration.csv
+```
+
+Load All Libraries Used:
+
+```{r}
+library(magrittr)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(GGally)
+library(mctest)
+library(lmtest)
+library(ggfortify)
+library(MASS)
+library(agricolae)
+library(lmtest)
+library(FSA)
+library(car)
+```
+
+Problem 1
+
+Part A
+
+1) R-Code for Pairwise Combinations and VIF Test
+
+```{r}
+#The following code was provided within the assignment instructions
+
+model = lm(USAGE ~ PROD + TEMP + HOUR + DAYS, data = data_p1)
+
+
+intermodel = lm(USAGE ~ (PROD + TEMP + HOUR) ^ 2, data= data_p1)
+
+
+finalintermodel = lm(USAGE ~ PROD + TEMP + HOUR + PROD * TEMP + PROD * HOUR, data = data_p1)
+summary(finalintermodel)
+
+waterdata <- data.frame(data_p1$PROD, data_p1$TEMP, data_p1$HOUR, data_p1$USAGE, data_p1$DAYS)
+
+ggpairs(waterdata,lower = list(continuous = "smooth_loess", combo = "facethist", discrete = "facetbar", na = "na"))
+
+imcdiag(mod = model, method="VIF")
+imcdiag(mod = finalintermodel, method="VIF")
+```
+
+2) Conclusion
+
+When we look at the correlations within our correlation matrix
+they are all < 0.80.
+
+When using the model without interaction terms and without products of the 
+independent predictors we find that there is no multi-colinearity. Moreover, 
+this is confirmed with our VIF test that explicitly states that there is no
+colinearity.
+
+When the high VIFs are caused by the inclusion of powers or products of other 
+variables, we can Safely Ignore Multicollinearity (which is present when we
+use the finalintermodel vector in our imcdiag() function).
+
+Part B
+
+1) Test For Heteroscedasticity 
+
+Ho: heteroscedasticity is not present (homoscedasticity)
+HA: heteroscedasticity is present
+
+```{r}
+bptest(finalintermodel)
+```
+
+2) Plot Residuals
+
+```{r}
+ggplot(finalintermodel, aes(x=.fitted, y=.resid)) +
+  geom_point() +
+  geom_hline(yintercept = 0) +
+  geom_smooth()+
+  ggtitle("Residual plot: Residual vs Fitted values")  
+```
+
+3) Conclusion
+
+From the output displays the Breusch-Pagan test that 
+results from the best-fit model. The p-value = 0.8484 > 0.05, indicates that we 
+do not reject the null hypothesis. Therefore, the test provides evidence to 
+suggest that heteroscedasticity does not exist (the model is homoscedastic). 
+Moreover, the residual plot exhibits a more wavy pattern that contains ups and
+downs which indicates that it is not heteroscedastic (which has more of a 
+funnel-like shape).
+
+Part C
+
+Ho: the sample data are significantly normally distributed 
+HA: the sample data are not significantly normally distributed 
+
+1) Histogram of Residuals
+
+```{r}
+ggplot(data=data_p1, aes(residuals(finalintermodel))) + 
+  geom_histogram(breaks = seq(-1,1,by=0.1), col="red", fill="blue") + 
+  labs(title="Histogram for residuals") +
+  labs(x="residuals", y="Count")
+```
+
+2) Q-Q Plot
+
+```{r}
+ggplot(data_p1, aes(sample=finalintermodel$residuals)) +
+  labs(title="Q-Q Plot of Residuals") +
+  stat_qq() +
+  stat_qq_line()
+```
+
+3) Shapiro-Wilk Test
+
+```{r}
+shapiro.test(residuals(finalintermodel))
+```
+
+4) Conclusion
+
+The outputs show that the residual data do not have normal distribution. 
+Moreover, Shapiro-Wilk normality test also confirms that the residuals are not 
+normally distributed as the p-value = 2.2 x 10 ^ -16 which is < 0.05.
+
+We want to reject the Ho (null hypothesis) if we are expecting our model to be
+normally distributed (as seen from the histogram and Q-Q plot which indicates
+that our residual plot's tails or edges curve away from the line which would 
+give us the indication that our model is not normally distributed).
+
+Part D
+
+1) Plot Residuals VS. Y-Hat (Fitted Values)
+
+```{r}
+ggplot(finalintermodel, aes(x=.fitted, y=.resid)) +
+  geom_point() +
+  geom_hline(yintercept = 0) +
+  geom_smooth()+
+  ggtitle("Residual plot: Residual vs Fitted values")  
+```
+
+2) Conclusion
+
+Looking specifically at the Residuals VS. Fitted plot there appears to be no
+pattern evident. The linear regression model assumes that there is a 
+straight-line relationship between the predictors and the response. 
+In this case the true relationship is not far from linear, which means that
+virtually all of the conclusions that we draw from the fit are not suspect.
+Are model is linear.
+
+Part E
+
+1) Cook's Measure Distance
+
+```{r}
+data_p1[cooks.distance(finalintermodel)>1,] #Cook statistics larger than 1
+plot(finalintermodel,pch=18,col="red",which=c(4))
+```
+
+2) Residual VS. Leverage Plot
+
+```{r}
+data_p1[cooks.distance(finalintermodel)>1,] #Cook statistics larger than 1
+plot(finalintermodel,pch=18,col="red",which=c(5))
+```
+
+3) Conclusion
+
+When using the general rule (that if any values appear in the upper right or
+lower right sections of the Residual VS. Leverage Points plot, then we have
+outliers) we can evaluate our graph to have no significantly influential
+outliers if this was the only criterion used to measure outlier significance. 
+However, since our y scale indicates that we have outliers #163, #106, and
+#232 beyond the value of 1 in this case we can say that these two outliers have
+significant influence within our model. When cases are outside of the Cook’s 
+distance (meaning they have high Cook’s distance scores), these cases are 
+influential to the regression results. 
+
+Part F
+
+1) Model Assumptions (MET or NOT MET)
+
+  1) Linearity Assumption - MET (STRAIGHT LINE LINEAR RELATIONSHIP)
+  
+  2) Independence Assumption - MET (NO TIME DATA USED; NO HIGHLY CORRELATED
+  SUCCESSIVE ERRORS)
+  
+  3) Equal Variance Assumption - MET (HOMOSCEDASTIC)
+  
+  4) Normality Assumption - NOT MET (DISTRIBUTION IS NOT NORMAL)
+  
+  5) Multi-colinearity Assumption - MET (MULTI-COLINEARITY IS NOT PRESENT)
+  
+  6) Outlier (The Effect on Individual Cases) Assumption - NOT MET (INFLUENTIAL 
+  OUTLIERS PRESENT)
+ 
+2) Improving the Model
+
+  Improve Normality Assumption - Add in quadratic, logarithmic, or cubic 
+  functions to correct this assumption to meet the criteria of normality; can
+  also use the Box-Cox transformation to help with fixing normality.
+  
+  Improve Outlier Assumption - We want to investigate these outliers on a 
+  case-by-case basis (to see each of their respective influences on the model)
+  then remove them from the dataset to remove their influences on the model.
+  
+Problem 2
+
+Part A
+
+Ho: the sample data are significantly normally distributed 
+HA: the sample data are not significantly normally distributed 
+
+1) Check Normality Assumption
+
+```{r}
+model=lm(BURDEN~(CGDUR+ MEM +SOCIALSU) , data=data_p2)
+
+shapiro.test(residuals(model))
+
+ggplot(data=data_p2, aes(residuals(model))) + 
+  geom_histogram(breaks = seq(-1,1,by=0.1), col="red", fill="blue") + 
+  labs(title="Histogram for residuals") +
+  labs(x="residuals", y="Count")
+
+ggplot(data_p2, aes(sample=model$residuals)) +
+  labs(title="Q-Q Plot of Residuals") +
+  stat_qq() +
+  stat_qq_line()
+```
+
+The model is significantly normally distributed (accept Ho).
+
+2) Check Homoscedasticity Assumption
+
+Ho: heteroscedasticity is not present (homoscedasticity)
+HA: heteroscedasticity is present
+
+```{r}
+model=lm(BURDEN~(CGDUR+ MEM +SOCIALSU), data=data_p2)
+
+bptest(model)
+
+ggplot(model, aes(x=.fitted, y=.resid)) +
+  geom_point() +
+  geom_hline(yintercept = 0) +
+  geom_smooth()+
+  ggtitle("Residual plot: Residual vs Fitted values")  
+```
+
+The model is homoscedastic (accept the Ho).
+
+3) Check Linearity Assumption
+
+```{r}
+model=lm(BURDEN~(CGDUR+ MEM +SOCIALSU) , data=data_p2)
+
+ggplot(model, aes(x=.fitted, y=.resid)) +
+  geom_point() +
+  geom_hline(yintercept = 0) +
+  geom_smooth()+
+  ggtitle("Residual plot: Residual vs Fitted values")  
+```
+
+No pattern detected; the model is linear.
+
+Part B
+
+1) Check For Possible Outliers
+
+```{r}
+data_p2[cooks.distance(model)>1,] #Cook statistics larger than 1
+plot(model,pch=18,col="red",which=c(4))
+plot(model,pch=18,col="red",which=c(5))
+```
+
+2) Detect the Outliers in the Dataset
+
+```{r}
+lev=hatvalues(model)
+p = length(coef(model))
+n = nrow(data_p2)
+outlier3p = lev[lev>(3*p/n)]
+print("h_I>3p/n, outliers are")
+print(outlier3p)
+plot(rownames(data_p2),lev, main = "Leverage in Advertising Dataset", xlab="observation",
+    ylab = "Leverage Value")
+abline(h = 3 *p/n, lty = 1)
+
+data_p2_mod <- data_p2[-c(58, 71),] #Create the new dataset without the outliers
+```
+Although the outliers are not significantly influential (because of the fact
+that they are found below Cook's distance value of 1); I will still create
+a second model without these outliers for Part C.
+
+Part C
+
+1) Comparison of Models
+
+```{r}
+model=lm(BURDEN~(CGDUR+ MEM +SOCIALSU), data=data_p2)
+
+model2=lm(BURDEN~(CGDUR+ MEM +SOCIALSU), data=data_p2_mod)
+
+summary(model)
+
+summary(model2)
+```
+
+2) Conclusion
+
+When we remove the outliers we find that the Adjusted R-Square is higher 
+(0.43 VS. 0.42) and that the Residual Standard Error is less (15.19 VS 15.25).
+
+When we evaluate our predictors the intercept, MEM, and SOCIALSU remain
+significant; however what we find is that the CGDUR predictor is now less
+than 0.05 (with the outliers the dataset's model had a p-value of 0.06 for
+the CGDUR predictor - meaning it was not significant). We find now that the 
+accuracy of our predictors' significance has increased and that the residuals'
+standard error has decreased. 
+
+Once again it should be noted however that these outliers are not significantly
+influential, I only removed them from the dataset because I spoke with Professor
+Paul Galpern who said that this is a perfectly fine approach.
+
+Problem 3
+
+Part A
+
+1) Plot Box Plots
+
+```{r}
+ggplot(data=data_p3, aes(x = Breed, y = Butterfat)) + geom_violin(col="red", fill="blue") + geom_boxplot(width=0.2, fill="orange") + xlab("") + ylab("Value of Butterfat") +  ggtitle("Violin Plot and Boxplot of Impact of Breed on Butterfat") + coord_flip()
+
+ggplot(data=data_p3, aes(x = Age, y = Butterfat)) + geom_violin(col="red", fill="blue") + geom_boxplot(width=0.2, fill="orange") + xlab("") + ylab("Value of Butterfat") +  ggtitle("Violin Plot and Boxplot of Impact of Age on Butterfat") + coord_flip()
+
+```
+
+2) Conclusion
+
+When we compare box plots it is important to note that the size of the box plot
+(or the interquartile range - when we subtract Q3 and Q1) is what determines 
+the level of variability among the various levels when compared to the 
+response variable.
+
+Breed Levels and Butterfat:
+
+The Jersey factor has the highest level of variability out of all the factors 
+(which entails quite a large interquartile range), followed by Guernsey which 
+has the second highest level of variability (which entails the a semi-large 
+interquartile range), then followed by Canadian which has the third highest 
+level of variability (which has a slightly smaller interquartile range), then 
+Ayrshire with the fourth highest level of variability (which has a much smaller 
+interquartile range), and then lastly Holstein-Fresian with the least amount of 
+variability (which has the smallest interquartile range).
+
+Age Levels and Butterfat:
+
+The Mature factor has the highest level of variability out of all the factors
+(which has the largest interquartile range), followed and then lastly 2year 
+with the least amount of variability (which has a slightly less large 
+interquartile range).
+
+Part B
+
+```{r}
+model = lm(Butterfat ~ Breed, data = data_p3)
+summary(model)
+
+model2 = lm(Butterfat ~ Age, data = data_p3)
+summary(model2)
+
+model3 = lm(Butterfat ~ Breed + Age, data = data_p3)
+summary(model3)
+```
+
+2) Conclusion
+
+I would remove the independent predictor Age from the linear model as this
+variable is not significant when predicting the value of Butterfat.
+
+Part C
+
+Ho: the sample data are significantly normally distributed 
+HA: the sample data are not significantly normally distributed 
+
+1) Normality Assumption / Q-Q Plot
+
+```{r}
+model = lm(Butterfat ~ Breed, data = data_p3)
+
+ggplot(data=data_p3, aes(residuals(model))) + 
+  geom_histogram(breaks = seq(-1,1,by=0.1), col="red", fill="blue") + 
+  labs(title="Histogram for residuals") +
+  labs(x="residuals", y="Count")
+
+ggplot(data_p3, aes(sample=model$residuals)) +
+  labs(title="Q-Q Plot of Residuals") +
+  stat_qq() +
+  stat_qq_line()
+```
+
+2) Equal-Variances Assumption
+
+Ho: heteroscedasticity is not present (homoscedasticity)
+HA: heteroscedasticity is present
+
+```{r}
+model = lm(Butterfat ~ Breed, data = data_p3)
+
+ggplot(model, aes(x=.fitted, y=.resid)) +
+  geom_point() +
+  geom_hline(yintercept = 0) +
+  geom_smooth()+
+  ggtitle("Residual plot: Residual vs Fitted values")  
+```
+
+3) Conclusions
+
+The model from the Q-Q plot appears to not be normally distributed as the 
+residual points have heavy tails found along the plotted line.
+
+The model from the residual plot indicates a funnel like shape this means
+that the model is heteroscedastic. 
+
+Part D
+
+1) Box-Cox Transformation
+
+```{r}
+model = lm(Butterfat ~ Breed, data = data_p3)
+
+bc = boxcox(model,lambda = seq(-3, 0))
+
+bestlambda=bc$x[which(bc$y==max(bc$y))]
+bestlambda
+
+bcmodel2=lm((((Butterfat^bestlambda)-1)/bestlambda)~Breed,data=data_p3)
+summary(bcmodel2)
+```
+
+2) Comparison of Models
+
+Model From Part D:
+
+From the Butterfat dataset, the output shows that Fcal = 63.36 with df = 4, 95
+(p-value< 2.2e-16 < α=0.05 ). 
+
+Adjusted R-squared:  0.7159 
+
+Residual Standard Error (RMSE): 0.009995
+
+Model From Part B:
+
+From the Butterfat dataset, the output shows that Fcal = 40.41 with df = 5, 94
+(p-value< 2.2e-16 < α=0.05 ). 
+
+Adjusted R-squared: 0.6656 
+
+Residual Standard Error (RMSE): 0.4138
+
+From the aforementioned statistical values it is evident that we would want to
+select the model from Part D as this has a much higher adjusted R-squared
+value whilst simultaneously significantly reducing the residual standard error.
+The model in Part D is also now normally distributed and homoscedastic (as 
+shown in the Part E).
+
+Part E
+
+Ho: the sample data are significantly normally distributed 
+HA: the sample data are not significantly normally distributed 
+
+1) Normality Assumption / Q-Q Plot
+
+```{r}
+model = lm((((Butterfat^bestlambda)-1)/bestlambda)~Breed,data=data_p3)
+
+ggplot(data_p3, aes(sample=model$residuals)) +
+  labs(title="Q-Q Plot of Residuals") +
+  stat_qq() +
+  stat_qq_line()
+
+ggplot(data=data_p3, aes(residuals(model))) + 
+  geom_histogram(breaks = seq(-1,1,by=0.1), col="red", fill="blue") + 
+  labs(title="Histogram for residuals") +
+  labs(x="residuals", y="Count")
+```
+
+2) Equal-Variances Assumption
+
+Ho: heteroscedasticity is not present (homoscedasticity)
+HA: heteroscedasticity is present
+
+When performing the diagnostic analyses I used the same tests as indicated
+in Part C of this question from the assignment instructions.
+
+```{r}
+model = lm((((Butterfat^bestlambda)-1)/bestlambda)~Breed,data=data_p3)
+
+ggplot(model, aes(x=.fitted, y=.resid)) +
+  geom_point() +
+  geom_hline(yintercept = 0) +
+  geom_smooth()+
+  ggtitle("Residual plot: Residual vs Fitted values")  
+```
+
+Problem 4
+
+Part A
+
+1) Identify Response Variable and Experimental Unit
+
+Response Variable - The response variable are the measurements of the 
+Vibrations that are recorded based on the brand of the motor.
+
+Experimental Unit - The motors (of which bear various brands) that are used
+to record measurements of vibrations (AKA the response variable or y).
+
+Part B
+
+1) Identify Treatment and Levels
+
+Factor - 1 Factor (variable 'brand') 
+
+Number of Levels - 5 Levels (brand1, brand2, brand3, brand4, brand5)
+
+Treatment - When there is only 1 factor the treatments are the levels of 
+the factors; 5 Treatments (brand1, brand2, brand3, brand4, brand5)
+
+Part C
+
+1) Hypothesis Test
+
+Ho: μ1=μ2=μ3=...=μc
+HA: at least one μi is different i=1,2,3,...,c
+
+2) Conduct Test
+
+I used the ANOVA function twice (both here and in Part D) because the t.test()
+function does not work for models with that contain 1 factor with more than 
+2 levels.
+
+```{r}
+CRD <- aov(vibration ~ brand, data = data_p4) 
+summary(CRD)
+```
+
+3) Conclusion
+
+From the Anova table, it can be seen that the Fcal = 8.444 with the 
+p-value = 0.000187 < α = 0.05, so we reject the null hypothesis. Therefore, 
+there is sufficient evidence to indicate that there is a difference in the 
+average vibration among the various levels of the motor brand at α = 0.05.
+
+Part D
+
+1) Construct the ANOVA Table For the Test
+
+```{r}
+CRD <- aov(vibration ~ brand, data = data_p4) 
+summary(CRD)
+```
+
+Part E
+
+1) Create Boxplots
+
+```{r}
+boxplot(vibration ~ brand, data = data_p4, main="Boxplot diagram for the different Levels") 
+```
+
+2) Conclusion
+
+The only level that has outliers is Brand3. Brand3 has two influential outliers
+that are found in above the third quartile (Q3) and one found below the first
+quartile (Q1); respectively.
+
+Part F
+
+1) Conduct All Pairwise t-test
+
+a) Un-adjusted Pairwise t-test
+
+```{r}
+str(data_p4)
+CRD <- aov(vibration ~ brand, data = data_p4) #Perform ANOVA for CRD
+summary(CRD)
+pairwise.t.test(data_p4$vibration, data_p4$brand, p.adj = "none")
+```
+
+b) Bonferroni Adjustment (Adjusted Pairwise t-test)
+
+```{r}
+str(data_p4)
+CRD <- aov(vibration ~ brand, data = data_p4) #Perform ANOVA for CRD
+summary(CRD)
+pairwise.t.test(data_p4$vibration, data_p4$brand, p.adj = "bonferroni")
+```
+
+c) Holm Adjustment (Adjusted Pairwise t-test)
+
+```{r}
+str(data_p4)
+CRD <- aov(vibration ~ brand, data = data_p4) #Perform ANOVA for CRD
+summary(CRD)
+pairwise.t.test(data_p4$vibration, data_p4$brand, p.adj = "holm")
+```
+
+d) Fisher’s Least Significant Difference Test
+
+```{r}
+str(data_p4)
+CRD <- aov(vibration ~ brand, data = data_p4) #Perform ANOVA for CRD
+summary(CRD)
+LS=LSD.test(CRD,trt="brand")
+LS
+```
+
+e) Tukey’s Honestly Significant Difference Test
+
+```{r}
+str(data_p4)
+CRD <- aov(vibration ~ brand, data = data_p4) #Perform ANOVA for CRD
+summary(CRD)
+TukeyHSD(CRD, conf.level = 0.95)
+plot(TukeyHSD(CRD, conf.level = 0.95),las=1, col = "red")
+```
+
+f) Newman-Keuls Test
+
+```{r}
+str(data_p4)
+CRD <- aov(vibration ~ brand, data = data_p4) #Perform ANOVA for CRD
+summary(CRD)
+print(SNK.test(CRD,"brand",group=TRUE))
+```
+
+g) The Scheffe Test
+
+```{r}
+str(data_p4)
+CRD <- aov(vibration ~ brand, data = data_p4) #Perform ANOVA for CRD
+summary(CRD)
+scheffe.test(CRD,"brand", group=TRUE,console=TRUE)
+```
+
+2) Conclusion
+
+i. Compare Results of the Tests (Combination of Levels With Differences)
+
+Un-adjusted Pairwise t-test:
+
+brand1 - brand2 (p-value = 0.00038 < 0.05)
+
+brand2 - brand3 (p-value = 0.00035 < 0.05)
+
+brand2 - brand5 (p-value = 2.3 x 10 ^ -05 < 0.05)
+
+brand4 - brand5 (p-value = 0.00618 < 0.05)
+
+
+Bonferroni Adjustment (Adjusted Pairwise t-test):
+
+brand1 - brand2 (p-value = 0.00376 < 0.05)
+
+brand2 - brand3 (p-value = 0.00348 < 0.05)
+
+brand2 - brand5 (p-value = 0.00023 < 0.05)
+
+
+Holm Adjustment (Adjusted Pairwise t-test):
+
+brand1 - brand2 (p-value = 0.00313 < 0.05)
+
+brand2 - brand3 (p-value = 0.00313 < 0.05)
+
+brand2 - brand5 (p-value = 0.00023 < 0.05)
+
+brand4 - brand5 (p-value = 0.04329 < 0.05)
+
+
+Fisher’s Least Significant Difference Test:
+
+I did not include group ab/bc as these do not have significant differences.
+
+brand2 - brand4 (Have grouping a and b respectively)
+
+brand2 - brand5 (Have grouping a and c respectively)
+
+brand4 - brand5 (Have grouping b and c respectively)
+
+NOTE: The fact that the brands each have different groupings, means that they
+have significant differences when being compared to one another.
+
+
+Tukey’s Honestly Significant Difference Test:
+
+brand1 - brand2 (p-value = 0.0031588 < 0.05)
+
+brand2 - brand3 (p-value = 0.0029299 < 0.05)
+
+brand2 - brand5 (p-value = 0.0002024 < 0.05)
+
+brand4 - brand5 (p-value = 0.0445279 < 0.05)
+
+
+Newman-Keuls Test:
+
+I did not include group ab/bc as these do not have significant differences.
+
+brand2 - brand4 (Have grouping a and b respectively)
+
+brand2 - brand5 (Have grouping a and c respectively)
+
+brand4 - brand5 (Have grouping b and c respectively)
+
+NOTE: The fact that the brands each have different groupings, means that they
+have significant differences when being compared to one another.
+
+
+The Scheffe Test:
+
+I did not include group ab/bc as these do not have significant differences.
+
+brand2 - brand4 (Have grouping a and b respectively)
+
+brand2 - brand5 (Have grouping a and c respectively)
+
+brand4 - brand5 (Have grouping b and c respectively)
+
+
+ii. Final Conclusion
+
+I decided to select all differences that were consistent among a majority of
+all of the tests (my philosophy here was to find every unique case of 
+combinations that had repeated several times throughout the tests - below are
+my final conclusions on the differences found in the levels of the brand of
+motors):
+
+brand1 - brand2 
+
+brand2 - brand3 
+
+brand2 - brand4 
+
+brand2 - brand5 
+
+brand4 - brand5 
+
+These are the specific level combinations that contain the significant 
+differences that were most prominent from all the tests conducted earlier.
+This once again confirms our original pairwise test as it is now truly evident 
+that we have multiple cases where various combinations of the levels have 
+significant differences.
+
+Part G
+
+1) Check Basic CRD Assumptions
+
+```{r}
+str(data_p4)
+CRD <- aov(vibration ~ brand, data = data_p4) #Perform ANOVA for CRD
+summary(CRD)
+
+par(mfrow=c(2,2))
+plot(CRD)
+
+bartlett.test(vibration ~ brand, data = data_p4)
+
+shapiro.test(residuals(CRD))
+
+bptest(CRD)
+
+kruskal.test(vibration ~ brand, data = data_p4)
+
+DT = dunnTest(vibration ~ brand, data = data_p4, method="none")
+DT
+```
+
+2) Conclusion
+
+For Bartlett's Test / BP Test:
+
+Ho: σ21=σ22=σ23=...=σ2c
+HA: at least one σ2i is different i=1,2,3,...,c
+
+The best fit model that we have used is homoscedastic (accept Ho). 
+P-value of 0.3931 > 0.05.
+
+This is also supported by the BP test in which we have a P-value of 0.3344 >
+0.05 (meaning the model is homoscedastic and we accept the Ho).
+
+For Shapiro-Wilk's Test:
+
+Ho: the sample data are significantly normally distributed 
+HA: the sample data are not significantly normally distributed 
+
+The best fit model that we have used is significantly normally distributed 
+(accept Ho). P-value of 0.3091 > 0.05.
+
+Kruskal-Wallis Test / Dunn Test:
+
+The output shows that H = 16.967 with the p-value= 0.001961 < α = 0.05. We can 
+conclude that at least one average brand is different.
+
+Since the Kruskal-Wallis test is significant, a post-hoc analysis was
+performed to determine which levels of the independent variable differ from 
+each other level:
+
+  brand2 - brand5	(this is where the difference in brand average occurs as this
+  is the only combination of categories that has a p.adj value = 0.0001596094	
+  < 0.05).
+
+  brand2 - brand3	(this is where the difference in brand average occurs as this
+  is the only combination of categories that has a p.adj value = 0.0067568196	
+  < 0.05).
+
+  brand4 - brand5	(this is where the difference in brand average occurs as this
+  is the only combination of categories that has a p.adj value = 0.0090514878	
+  < 0.05).	
+
+
+
+
+
+
+
+
+
+
+
